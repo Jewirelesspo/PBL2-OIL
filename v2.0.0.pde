@@ -2,8 +2,6 @@ import javax.swing.JOptionPane;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-int inputValue = -1; // 初期値を設定 (未使用だが残しておく)
-
 int cols, rows;  // グリッドの列数と行数
 int cellSize = 10;  // セルのサイズ
 float D = 0.07;  // 拡散係数（0～1）を調整 (移動確率に影響)
@@ -14,7 +12,7 @@ int navHeight = 80; // ナビゲーションバーの高さ
 int playerOil = 10000;
 int enemyOil = 100;
 
-// 拠点の座標と所有者（0: なし, 1: プレイヤー, 2: 敵）
+// 拠点の座標と所有者 (0: なし, 1: プレイヤー, 2: 敵)
 ArrayList<PVector> bases = new ArrayList<>();
 int[] baseOwners;
 int[] baseOil; // 各拠点の持つ原油数
