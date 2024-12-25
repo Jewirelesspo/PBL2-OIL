@@ -31,36 +31,41 @@ void setup() {
     cols = width / cellSize;
     rows = (height - navHeight) / cellSize; // 明示的に切り捨て
     println("cols: " + cols + ", rows: " + rows);
-
+    
     grid = new int[cols][rows];
     nextGrid = new int[cols][rows];
     potential = new float[cols][rows];
-
+    
     generateRandomBases();
     baseOwners = new int[bases.size()]; // 初期状態は所有者なし
     baseOil = new int[bases.size()];   // 初期状態は原油0
-
+    
     // 油田のランダム配置
     for (int i = 0; i < numOilFields; ++i) {
         oilFields.add(createValidOilFieldPosition());
     }
-
+    
     println(bases.size());
     // グリッドの初期化（拠点を設定）
     for (int i = 0; i < bases.size(); ++i) {
         grid[(int) bases.get(i).x][(int) bases.get(i).y] = 3 + i;
     }
-
-    initializePotential(); // ポテンシャルマップの初期化
+    
+    initializePotential(false); // ポテンシャルマップの初期化
 }
 
-void initializePotential() {
+void initializePotential(boolean season) {
     for (int i = 0; i < cols; i++) {
         for (int j = 0; j < rows; j++) {
-            for(int k = 0; k < bases.size(); k++){
+            potential[i][j] = 0.0;
+            for (int k = 0; k < bases.size(); k++) {
                 float baseDist = dist(i, j, bases.get(k).x, bases.get(k).y);
                 // if (baseDist < 4) potential[i][j] -= 0.005 / baseDist;
-                potential[i][j] -= (float)i / (float)width;
+                if (season) {
+                    potential[i][j] -= (float)i / (float)width;
+                } else{
+                    potential[i][j] += (float)i / (float)width;
+                }
             }
         }
     }
@@ -71,8 +76,13 @@ void generateRandomBases() {
     for (int i = 0; i < numBases; ++i) {
         PVector newBase;
         boolean validPosition = false;
-        while (!validPosition) {
-            newBase = new PVector(floor(random(cols)), floor(random(rows)));
+        while(!validPosition) {
+            // マップの左右に拠点を振り分け
+            if (i % 2 == 0) {
+                newBase = new PVector(floor(random(cols / 2)), floor(random(rows / 2)));
+            } else {
+                newBase = new PVector(floor(random(cols / 2, cols)), floor(random(rows / 2, rows)));
+            }
             boolean tooClose = false;
             for (PVector existingBase : bases) {
                 if (dist(newBase.x, newBase.y, existingBase.x, existingBase.y) < 10) {
@@ -92,7 +102,7 @@ void generateRandomBases() {
 PVector createValidOilFieldPosition() {
     PVector pos = new PVector();
     boolean valid = false;
-    while (!valid) {
+    while(!valid) {
         pos = new PVector(floor(random(cols)), floor(random(rows)));
         boolean overlaps = false;
         for (PVector base : bases) {
@@ -109,10 +119,15 @@ PVector createValidOilFieldPosition() {
 }
 
 void draw() {
+    if (second() % 10 < 5) {
+        initializePotential(false);
+    } else{
+        initializePotential(true);
+    }
     background(240);
     drawGrid();  // グリッドを描画
     drawUI();    // UIを描画
-
+    
     if (gameStarted) {
         updateCell();  // グリッドを更新
         checkWinCondition(); // 勝利条件のチェック
@@ -153,7 +168,7 @@ void drawGrid() {
             rect(i * cellSize, j * cellSize + navHeight, cellSize, cellSize); // y座標を調整
         }
     }
-
+    
     // 油田を描画
     fill(255, 200, 0); // 黄色
     for (PVector oilField : oilFields) {
@@ -162,8 +177,8 @@ void drawGrid() {
 }
 
 /**
- * ナビゲーションバー
- */
+* ナビゲーションバー
+*/
 void drawUI() {
     fill(220);
     rect(0, 0, width, navHeight);
@@ -172,7 +187,7 @@ void drawUI() {
     textAlign(LEFT, CENTER);
     text("Player Oil: " + playerOil, 10, navHeight / 2);
     text("Enemy Oil: " + enemyOil, 200, navHeight / 2);
-
+    
     textAlign(CENTER, CENTER);
     if (!gameStarted) {
         fill(100);
@@ -191,7 +206,7 @@ void updateCell() {
             nextGrid[i][j] = 0; // 一旦全て空にする
         }
     }
-
+    
     // 原油の移動
     for (int i = 0; i < cols; ++i) {
         for (int j = 0; j < rows; ++j) {
@@ -206,7 +221,7 @@ void updateCell() {
             }
         }
     }
-
+    
     // セルの塗り替え
     for (int i = 0; i < cols; ++i) {
         for (int j = 0; j < rows; ++j) {
@@ -227,9 +242,9 @@ void updateCell() {
                         }
                     }
                 }
-                if (allyCount > 3 && grid[i][j] == 2) { // パラメータ調整
+                if (allyCount > enemyCount && grid[i][j] == 2) { // パラメータ調整
                     nextGrid[i][j] = 1; // 味方セルに変化
-                } else if (enemyCount > 3 && grid[i][j] == 1) { // パラメータ調整
+                } else if (allyCount < enemyCount && grid[i][j] == 1) { // パラメータ調整
                     nextGrid[i][j] = 2; // 敵セルに変化
                 }
             } else if (grid[i][j] >= 3) { // 拠点は維持
@@ -237,10 +252,10 @@ void updateCell() {
             }
         }
     }
-
+    
     // 拠点の占領判定
     checkBaseCapture();
-
+    
     // 拠点の原油分配
     for (int k = 0; k < bases.size(); k++) {
         int owner = baseOwners[k];
@@ -262,14 +277,14 @@ void updateCell() {
             }
         }
     }
-
+    
     // グリッドを更新
     for (int i = 0; i < cols; ++i) {
         for (int j = 0; j < rows; ++j) {
             grid[i][j] = nextGrid[i][j];
         }
     }
-
+    
     // 油田からの収入
     for (PVector oilField : oilFields) {
         int i = (int) oilField.x;
@@ -314,32 +329,32 @@ void checkBaseCapture() {
         //     if (ownedCount < 3) { // 周囲に自陣のセルが少ない場合は中立化
         //         baseOwners[k] = 0;
         //     }
-        // } else { // 中立拠点の占領判定
-            int playerNeighbors = 0;
-            int enemyNeighbors = 0;
-            for (int xOffset = -1; xOffset <= 1; xOffset++) {
-                for (int yOffset = -1; yOffset <= 1; yOffset++) {
-                    if (xOffset == 0 && yOffset == 0) continue;
-                    int ni = baseX + xOffset;
-                    int nj = baseY + yOffset;
-                    if (isValid(ni, nj)) {
-                        if (grid[ni][nj] == 1) playerNeighbors++;
-                        else if (grid[ni][nj] == 2) enemyNeighbors++;
-                    }
+// } else { // 中立拠点の占領判定
+        int playerNeighbors = 0;
+        int enemyNeighbors = 0;
+        for (int xOffset = -1; xOffset <= 1; xOffset++) {
+            for (int yOffset = -1; yOffset <= 1; yOffset++) {
+                if (xOffset == 0 && yOffset == 0) continue;
+                int ni = baseX + xOffset;
+                int nj = baseY + yOffset;
+                if (isValid(ni, nj)) {
+                    if (grid[ni][nj] == 1) playerNeighbors++;
+                    else if (grid[ni][nj] == 2) enemyNeighbors++;
                 }
             }
-            if (playerNeighbors >= 4) {
-                baseOwners[k] = 1;
-            } else if (enemyNeighbors >= 4) {
-                baseOwners[k] = 2;
-            }
-        // }
+        }
+        if (playerNeighbors >= 3) {
+            baseOwners[k] = 1;
+        } else if (enemyNeighbors >= 3) {
+            baseOwners[k] = 2;
+        }
+// }
     }
 }
 
 /**
- * ポテンシャルを考慮した空き隣接セルを取得
- */
+* ポテンシャルを考慮した空き隣接セルを取得
+*/
 ArrayList<PVector> getEmptyNeighborsWithPotential(int x, int y, int owner) {
     ArrayList<PVector> neighbors = new ArrayList<>();
     float currentPotential = potential[x][y];
@@ -363,8 +378,8 @@ ArrayList<PVector> getEmptyNeighborsWithPotential(int x, int y, int owner) {
 }
 
 /**
- * @return 隣接する空セルの数
- */
+* @return 隣接する空セルの数
+*/
 ArrayList<PVector> getEmptyNeighbors(int x, int y) {
     ArrayList<PVector> neighbors = new ArrayList<>();
     for (int xOffset = -1; xOffset <= 1; xOffset++) {
@@ -401,7 +416,7 @@ void mousePressed() {
                             println("無効な入力または原油が不足しています。");
                         }
                     }
-                } catch (NumberFormatException e) {
+                } catch(NumberFormatException e) {
                     println("数字ではありません: " + input);
                 }
                 inputValue = -1; // 入力後リセット
@@ -409,7 +424,7 @@ void mousePressed() {
             break;
         }
     }
-
+    
     if (!gameStarted) {
         // Startボタンがクリックされたか確認
         if (mouseX > width - 150 && mouseX < width - 10 && mouseY > 10 && mouseY < navHeight - 10) {
@@ -450,7 +465,8 @@ void enemyTurn() {
         }
         if (enemyBases.size() > 0 && enemyOil > 0) {
             int selectedBaseIndex = enemyBases.get(floor(random(enemyBases.size())));
-            int amount = floor(random(min(enemyOil, 15))) + 5;
+            // int amount = floor(random(min(enemyOil, 15)));
+            int amount = enemyOil;
             if (amount > 0) {
                 enemyOil -= amount;
                 baseOil[selectedBaseIndex] += amount;
@@ -474,7 +490,7 @@ void checkWinCondition() {
             enemyWins = false;
         }
     }
-
+    
     if (playerWins) {
         println("Player wins!");
         gameStarted = false;
