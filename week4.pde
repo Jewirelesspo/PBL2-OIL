@@ -12,13 +12,13 @@ float[][] potential; // ポテンシャルエネルギーマップ
 
 int navHeight = 80; // ナビゲーションバーの高さ
 int playerOil = 10000;
-int enemyOil = 100;
+int enemyOil = 10000;
 
 // 拠点の座標と所有者（0: なし, 1: プレイヤー, 2: 敵）
 ArrayList<PVector> bases = new ArrayList<>();
 int[] baseOwners;
 int[] baseOil; // 各拠点の持つ原油数
-int numBases = 4; // 拠点の数
+int numBases = 10; // 拠点の数
 
 // 油田の座標
 ArrayList<PVector> oilFields = new ArrayList<>();
@@ -59,7 +59,7 @@ void initializePotential() {
         for (int j = 0; j < rows; j++) {
             for(int k = 0; k < bases.size(); k++){
                 float baseDist = dist(i, j, bases.get(k).x, bases.get(k).y);
-                //if (baseDist < 4) potential[i][j] -= 0.005 / baseDist;
+                // if (baseDist < 4) potential[i][j] -= 0.005 / baseDist;
                 potential[i][j] -= (float)i / (float)width;
             }
         }
@@ -86,6 +86,7 @@ void generateRandomBases() {
             }
         }
     }
+    println(bases.size());
 }
 
 PVector createValidOilFieldPosition() {
@@ -135,7 +136,7 @@ void drawGrid() {
                 fill(10, 10, 10); // プレイヤー油: 黒
             } else if (grid[i][j] == 2) {
                 fill(200, 0, 0); // 敵の油: 赤
-            } else if (grid[i][j] >= 3 && grid[i][j] <= 6) {
+            } else if (grid[i][j] >= 3) {
                 int baseIndex = grid[i][j] - 3;
                 if (baseOwners[baseIndex] == 1) {
                     fill(0, 150, 0); // プレイヤーの都市
@@ -298,22 +299,22 @@ void checkBaseCapture() {
         int baseX = (int) bases.get(k).x;
         int baseY = (int) bases.get(k).y;
         int owner = baseOwners[k];
-        if (owner != 0) {
-            int ownedCount = 0;
-            for (int xOffset = -1; xOffset <= 1; xOffset++) {
-                for (int yOffset = -1; yOffset <= 1; yOffset++) {
-                    if (xOffset == 0 && yOffset == 0) continue;
-                    int ni = baseX + xOffset;
-                    int nj = baseY + yOffset;
-                    if (isValid(ni, nj) && grid[ni][nj] == owner) {
-                        ownedCount++;
-                    }
-                }
-            }
-            // if (ownedCount < 3) { // 周囲に自陣のセルが少ない場合は中立化
-            //     baseOwners[k] = 0;
-            // }
-        } else { // 中立拠点の占領判定
+        // if (owner != 0) {
+        //     int ownedCount = 0;
+        //     for (int xOffset = -1; xOffset <= 1; xOffset++) {
+        //         for (int yOffset = -1; yOffset <= 1; yOffset++) {
+        //             if (xOffset == 0 && yOffset == 0) continue;
+        //             int ni = baseX + xOffset;
+        //             int nj = baseY + yOffset;
+        //             if (isValid(ni, nj) && grid[ni][nj] == owner) {
+        //                 ownedCount++;
+        //             }
+        //         }
+        //     }
+        //     if (ownedCount < 3) { // 周囲に自陣のセルが少ない場合は中立化
+        //         baseOwners[k] = 0;
+        //     }
+        // } else { // 中立拠点の占領判定
             int playerNeighbors = 0;
             int enemyNeighbors = 0;
             for (int xOffset = -1; xOffset <= 1; xOffset++) {
@@ -327,12 +328,12 @@ void checkBaseCapture() {
                     }
                 }
             }
-            if (playerNeighbors >= 5) {
+            if (playerNeighbors >= 4) {
                 baseOwners[k] = 1;
-            } else if (enemyNeighbors >= 5) {
+            } else if (enemyNeighbors >= 4) {
                 baseOwners[k] = 2;
             }
-        }
+        // }
     }
 }
 
