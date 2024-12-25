@@ -115,7 +115,7 @@ void draw() {
         checkWinCondition(); // 勝利条件のチェック
         // 敵のターンを一定間隔で実行
         if (frameCount % 60 == 30) { // 少しずらして実行
-            //enemyTurn();
+            enemyTurn();
         }
     } else {
         fill(0);
@@ -410,7 +410,7 @@ void mousePressed() {
     if (!gameStarted) {
         // Startボタンがクリックされたか確認
         if (mouseX > width - 150 && mouseX < width - 10 && mouseY > 10 && mouseY < navHeight - 10) {
-            //enemyTurn();
+            enemyTurn();
             gameStarted = true;
             return;
         }
